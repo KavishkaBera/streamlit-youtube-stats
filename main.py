@@ -19,7 +19,7 @@ if not firebase_admin._apps:
             cred = credentials.Certificate(firebase_credentials)
         else:
             # Otherwise, load from a local JSON file
-            cred = credentials.Certificate("firebase_credentials.json")
+            cred = credentials.Certificate("path/to/firebase_credentials.json")
         firebase_admin.initialize_app(cred)
     except Exception as e:
         st.error(f"Error initializing Firebase: {e}")
