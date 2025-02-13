@@ -5,24 +5,24 @@ import plotly.express as px
 import requests
 import re
 import firebase_admin
-from firebase_admin import credentials, firestore
+from firebase_admin import credentials
+from firebase_admin import db  # <-- Import Realtime Database module
 import json
 
 # -------------------------------------------
-# Initialize Firebase Firestore using local credentials file
+# Initialize Firebase Realtime Database using local credentials file
 # -------------------------------------------
 if not firebase_admin._apps:
     try:
-        # Directly use the local service account JSON file.
-        cred = credentials.Certificate("firebase_credentials.json")
-        firebase_admin.initialize_app(cred)
+        # Replace with your actual service account JSON file path
+        cred = credentials.Certificate("serviceAccountKey.json")
+        # Initialize the app with Realtime Database URL
+        firebase_admin.initialize_app(cred, {
+            "databaseURL": "https://kavishka-f3030-default-rtdb.firebaseio.com/"
+        })
     except Exception as e:
         st.error(f"Error initializing Firebase: {e}")
 
-try:
-    db = firestore.client()  # Firestore database instance
-except Exception as e:
-    st.error(f"Error connecting to Firestore: {e}")
 
 # -------------------------------------------
 # Function to calculate the gratification score
@@ -91,27 +91,30 @@ ADMIN_PASSWORD = "grat1234"
 
 # -------------------------------------------
 # (Optional) Initialize local feedback storage in session state
-# Not used for Firestore but kept for legacy purposes
+# Not used for Realtime Database but kept for legacy or fallback
 # -------------------------------------------
 if "feedback_data" not in st.session_state:
     st.session_state["feedback_data"] = []
 
 # -------------------------------------------
-# Function to store feedback in Firestore with error handling
+# Function to store feedback in Realtime Database
 # -------------------------------------------
 def store_feedback(user_feedback, reaction):
     try:
-        feedback_ref = db.collection("feedbacks")
-        feedback_ref.add({"feedback": user_feedback, "reaction": reaction})
+        feedback_ref = db.reference("feedbacks")
+        feedback_ref.push({
+            "feedback": user_feedback,
+            "reaction": reaction
+        })
         st.success("Feedback submitted successfully!")
     except Exception as e:
-        st.error(f"Error writing feedback to Firestore: {e}")
+        st.error(f"Error writing feedback to Realtime Database: {e}")
 
 # -------------------------------------------
 # Main application function
 # -------------------------------------------
 def main():
-    st.title("YouTube Content Creation Simulation")
+    st.title("YouTube Content Creation Simulation (Realtime DB)")
     st.markdown("""
     Explore how adjustments in social and technological factors impact the Gratification Score.
     """)
@@ -239,17 +242,27 @@ def main():
 
         if thumbs_up or thumbs_down:
             reaction = "Thumbs Up" if thumbs_up else "Thumbs Down"
-            store_feedback(feedback, reaction)  # Save feedback in Firestore
+            store_feedback(feedback, reaction)  # Save feedback in Realtime Database
 
 # -------------------------------------------
-# Function to fetch all feedback from Firestore
+# Function to fetch all feedback from Realtime Database
 # -------------------------------------------
 def fetch_feedback():
     try:
-        feedback_ref = db.collection("feedbacks").stream()
-        return [{"Reaction": f.get("reaction"), "Feedback": f.get("feedback")} for f in feedback_ref]
+        feedback_ref = db.reference("feedbacks")
+        data = feedback_ref.get()
+        if data is None:
+            return []  # No feedback yet
+        # data will be a dictionary of push IDs -> {feedback, reaction}
+        feedback_list = []
+        for key, val in data.items():
+            feedback_list.append({
+                "Reaction": val.get("reaction", ""),
+                "Feedback": val.get("feedback", "")
+            })
+        return feedback_list
     except Exception as e:
-        st.error(f"Error fetching feedback from Firestore: {e}")
+        st.error(f"Error fetching feedback from Realtime Database: {e}")
         return []
 
 # -------------------------------------------
@@ -280,6 +293,7 @@ def show_admin_dashboard():
 # -------------------------------------------
 if __name__ == "__main__":
     main()
+
 
 
 
