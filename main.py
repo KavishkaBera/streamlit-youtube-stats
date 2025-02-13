@@ -9,17 +9,12 @@ from firebase_admin import credentials, firestore
 import json
 
 # -------------------------------------------
-# Initialize Firebase Firestore with error handling
+# Initialize Firebase Firestore using local credentials file
 # -------------------------------------------
 if not firebase_admin._apps:
     try:
-        # Attempt to load credentials from st.secrets (for Streamlit Cloud)
-        if "firebase" in st.secrets:
-            firebase_credentials = json.loads(st.secrets["firebase"]["credentials"])
-            cred = credentials.Certificate(firebase_credentials)
-        else:
-            # Otherwise, load from a local JSON file
-            cred = credentials.Certificate("firebase_credentials.json")
+        # Directly use the local service account JSON file.
+        cred = credentials.Certificate("firebase_credentials.json")
         firebase_admin.initialize_app(cred)
     except Exception as e:
         st.error(f"Error initializing Firebase: {e}")
@@ -285,6 +280,7 @@ def show_admin_dashboard():
 # -------------------------------------------
 if __name__ == "__main__":
     main()
+
 
 
 
