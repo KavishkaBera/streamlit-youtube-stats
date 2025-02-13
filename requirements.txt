@@ -4,4 +4,3 @@ numpy
 plotly
 requests
 firebase-admin
-json
